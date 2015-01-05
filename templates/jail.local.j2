@@ -1,0 +1,115 @@
+# Fail2Ban configuration file.
+#
+# The DEFAULT allows a global definition of the options. They can be overridden
+# in each jail afterwards.
+
+[DEFAULT]
+
+# "ignoreip" can be an IP address, a CIDR mask or a DNS host
+ignoreip =  {{ fail2ban.config.ignoreip }}
+bantime  =  {{ fail2ban.config.bantime }}
+findtime =  {{ fail2ban.config.findtime }}
+maxretry =  {{ fail2ban.config.maxretry }}
+
+# "backend" specifies the backend used to get files modification. Available
+# options are "gamin", "polling" and "auto".
+backend = auto
+
+# "usedns" specifies if jails should trust hostnames in logs,
+#   warn when DNS lookups are performed, or ignore all hostnames in logs
+#
+# yes:   if a hostname is encountered, a DNS lookup will be performed.
+# warn:  if a hostname is encountered, a DNS lookup will be performed,
+#        but it will be logged as a warning.
+# no:    if a hostname is encountered, will not be used for banning,
+#        but it will be logged as info.
+usedns = {{ fail2ban.config.usedns }}
+
+# Default action to take: ban only
+#action = iptables[name=%(__name__)s, port=%(port)s]
+
+# I use the 'multi-line with whois' action, so I change the action for the jail in question
+action = %(action_mwl)s
+
+# Destination email address used solely for the interpolations in
+# jail.{conf,local} configuration files.
+destemail   = {{ fail2ban.config.destemail }}
+sendername  = {{ fail2ban.config.sender }} 
+mta         = zimbrasendmail
+
+######################################################
+####################### OTHERS #######################
+######################################################
+
+[ssh-iptables]
+enabled = true
+port    = {{ fail2ban.config.sshport }}
+filter  = sshd
+{% if ansible_os_family == "Debian" %}
+logpath = /var/log/auth.log
+{ % else %}
+logpath = /var/log/secure
+{% endif %}
+action  = iptables-allports[name=SSH-iptables]
+
+######################################################
+####################### ZIMBRA #######################
+######################################################
+
+[zimbra-account]
+enabled = true
+usedns = no
+filter = zimbra
+action = iptables-allports[name=Zimbra-account]
+         sendmail-whois-zimbra[name=Zimbra, dest="%(destemail)s", sender="%(sendername)s", logpath="%(logpath)s"]
+logpath = '{{ zimbra.log_path }}'/mailbox.log
+
+[zimbra-audit]
+enabled = true
+usedns = no
+filter = zimbra
+action = iptables-allports[name=Zimbra-audit]
+logpath = '{{ zimbra.log_path }}'/audit.log
+bantime = 18000
+
+[zimbra-recipient]
+enabled = true
+usedns = no
+filter = zimbra
+action = iptables-allports[name=Zimbra-recipient]
+         sendmail-whois-zimbra[name=Zimbra, dest="%(destemail)s", sender="%(sendername)s", logpath="%(logpath)s"]
+
+logpath = /var/log/maillog
+findtime = 604800
+
+[zimbra-webmail]
+enabled = true
+usedns = no
+port    = http,https
+action  = iptables-multiport[name=zimbra-webmail, port="http,https", protocol=tcp]
+          sendmail-whois-zimbra[name=Zimbra, dest="%(destemail)s", sender="%(sendername)s", logpath="%(logpath)s"]
+filter  = zimbra
+logpath = '{{ zimbra.log_path }}'/audit.log
+
+[postfix]
+enabled = true
+filter = postfix
+action = iptables-multiport[name=Postfix, port=smtp, protocol=tcp]
+logpath = /var/log/maillog
+
+[sasl-iptables]
+enabled = true
+filter = sasl
+action = iptables-allports[name=sasl]
+logpath = /var/log/maillog
+
+[zimbra-repeater]
+enabled  = true
+usedns   = no
+filter   = zimbra
+action   = iptables-repeater[name=Zimbra-account]
+           sendmail-whois-zimbra[name=Zimbra, dest="%(destemail)s", sender="%(sendername)s", logpath="%(logpath)s"]
+logpath  = '{{ zimbra.log_path }}'/audit.log
+maxretry = 30
+findtime = 604800   # 7 days
+bantime  = 2592000  # 30 days

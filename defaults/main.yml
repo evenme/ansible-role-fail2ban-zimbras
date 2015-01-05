@@ -1,0 +1,22 @@
+---
+fail2ban:    
+    path: /etc/fail2ban
+    filter_path: /etc/fail2ban/filter.d
+    action_path: /etc/fail2ban/action.d
+    pkg_state: installed
+    pkg_version:
+    pkg_state: installed
+    service_state: started
+    service_enabled: yes
+    config:
+        ignoreip: 127.0.0.1/8
+        bantime: 7200
+        maxretry: 9
+        findtime: 600
+        destemail: admin@{{ ansible_domain }}"
+        sender:  "admin@{{ ansible_domain }}"
+        usedns: "no"
+        sshport: 22
+
+zimbra:
+    log_path: /opt/zimbra/log

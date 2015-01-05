@@ -1,0 +1,33 @@
+---
+- name: Debian | install specific Fail2Ban version
+  apt:
+        pkg: fail2ban
+        state: installed
+        update_cache: yes
+        cache_valid_time: 3600
+  when: ansible_os_family == 'Debian' and fail2ban_pkg_version
+
+- name: Debian | install current/latest Fail2Ban version
+  apt:
+        pkg: fail2ban
+        state: '{{ fail2ban.pkg_state }}'
+        update_cache: yes
+        cache_valid_time: 3600
+  when: ansible_os_family == 'Debian' and not fail2ban_pkg_version
+
+- name: RedHat | install specific Fail2Ban version
+  yum:
+        name: '{{ item }}'
+        state: '{{ fail2ban.pkg_state }}'
+        enablerepo: epel
+  with_items:
+    - fail2ban
+    - jwhois
+  register: fail2ban_install
+  when: ansible_os_family == 'RedHat' and fail2ban.pkg_version
+
+- name: RedHat | install current/latest Fail2Ban package
+  yum:
+    name: fail2ban
+    state: '{{ fail2ban.pkg_state }}'
+  when: ansible_os_family == 'RedHat' and not fail2ban.pkg_version

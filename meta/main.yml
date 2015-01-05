@@ -1,0 +1,23 @@
+---
+galaxy_info:
+    author: Kessia Pinheiro Barboza
+    description: Fail2ban configuration to use with Zimbra Mail servers
+    license: GPLv3
+    min_ansible_version: 1.8
+    platforms:
+        - name: Ubuntu
+          versions:
+            - all
+        - name: Debian
+          versions:
+            - all
+        - name: EL
+          versions:
+            - all
+        - name: Fedora
+          versions:
+            - all
+    categories:
+        - networking
+        - monitoring
+dependencies: []

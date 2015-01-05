@@ -1,0 +1,13 @@
+---
+- include: package.yml
+  tags: package
+
+- include: configuration.yml
+  tags: configuration
+
+- name: Fail2ban | start/stop fail2ban service
+  service:
+        name: fail2ban
+        state: '{{ fail2ban.service_state }}'
+        enabled: '{{ fail2ban.service_enabled }}'
+  tags: service

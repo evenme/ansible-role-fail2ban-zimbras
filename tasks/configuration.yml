@@ -1,0 +1,54 @@
+---
+- name: Zimbra | ensure {{ zimbra.log_path }} directory is present
+  stat:
+        path: '{{ zimbra.log_path }}'
+        get_md5: no
+  register: zimbralog_present
+
+- name: Fail2ban | copy custom filters
+  copy: 
+        src: 'filters/{{ item }}'
+        dest: '{{ fail2ban.filter_path }}/{{ item }}'
+        owner: root
+        group: root
+        mode: 0644 
+        force: yes
+  with_items: 
+    - zimbra.conf 
+    - sasl.conf
+  when: zimbralog_present.stat.isdir is defined and zimbralog_present.stat.isdir
+  notify: restart_fail2ban
+
+- name: Fail2ban | copy custom actions
+  copy: 
+        src: 'actions/{{ item }}'
+        dest: '{{ fail2ban.action_path }}/{{ item }}'
+        owner: root 
+        group: root 
+        mode: 0644 
+        force: yes
+  with_items:
+    - sendmail-whois-zimbra.conf
+    - iptables-repeater.conf
+  notify: restart_fail2ban
+
+- name: Fail2ban | configure jail.local
+  template: 
+        src: 'jail.local.j2'
+        dest: '{{ fail2ban.path }}/jail.local'
+        owner: root
+        group: root 
+        mode: 0644
+  notify: restart_fail2ban
+
+- name: Fail2ban | logging into fail2ban.log
+  action: lineinfile
+        dest='/etc/fail2ban/fail2ban.conf'
+        regexp='logtarget\s+=\s+SYSLOG"'
+        line='logtarget = /var/log/fail2ban.log'
+        state=present
+
+- name: Zimbra | set zimbraPasswordLockoutMaxFailures value
+  sudo: yes
+  sudo_user: zimbra
+  command: '/opt/zimbra/bin/zmprov mc default zimbraPasswordLockoutMaxFailures 10'
